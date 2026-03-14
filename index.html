@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Smart Farm Yield Prediction</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+    <div class="container">
+      <header>
+        <h1>🌾 Smart Farm Yield Prediction</h1>
+        <p class="info">Your farm assistant: enter sensor and field data, then click Predict.</p>
+      </header>
+      <div id="form">
+        <div class="grid" id="inputs"></div>
+        <button id="predict">Predict Yield</button>
+      </div>
+      <div id="message"></div>
+      <footer>Backed by Flask API at <strong>http://127.0.0.1:5000</strong></footer>
+    </div>
+
+    <script>
+        const featureColumns = [
+            'farm_id', 'region', 'crop_type', 'soil_moisture_%', 'soil_pH', 'temperature_C',
+            'rainfall_mm', 'humidity_%', 'sunlight_hours', 'irrigation_type', 'fertilizer_type',
+            'pesticide_usage_ml', 'sowing_date', 'harvest_date', 'total_days', 'yield_kg_per_hectare',
+            'sensor_id', 'timestamp', 'latitude', 'longitude', 'NDVI_index'
+        ];
+
+        const inputs = document.getElementById('inputs');
+        featureColumns.forEach(name => {
+            const cell = document.createElement('div');
+            const label = document.createElement('label');
+            label.innerText = name;
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.step = 'any';
+            input.value = '0';
+            input.id = name;
+            cell.appendChild(label);
+            cell.appendChild(input);
+            inputs.appendChild(cell);
+        });
+
+        document.getElementById('predict').addEventListener('click', async () => {
+            const payload = {};
+            featureColumns.forEach(name => payload[name] = Number(document.getElementById(name).value || 0));
+
+            const message = document.getElementById('message');
+            message.textContent = 'Sending request...';
+            message.className = '';
+            try {
+                const response = await fetch('http://127.0.0.1:5000/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    message.textContent = data.error ? `${data.error} ${data.missing ? 'Missing: ' + data.missing.join(',') : ''}` : 'Error from backend';
+                    message.className = 'result err';
+                } else {
+                    message.textContent = `Predicted yield: ${data.predicted_yield?.toFixed(2) || data.predicted_insurance_cost || 'N/A'}`;
+                    message.className = 'result ok';
+                }
+            } catch (err) {
+                message.textContent = 'Request failed: ' + err;
+                message.className = 'result err';
+            }
+        });
+    </script>
+</body>
+</html>
